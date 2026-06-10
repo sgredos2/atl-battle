@@ -1,0 +1,826 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>ATL — битва треков</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@300;500;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0a0d0b;
+    --panel:#121814;
+    --panel-2:#161d18;
+    --line:#243029;
+    --text:#e9ece6;
+    --muted:#7d8a7f;
+    --acid:#bfe22a;
+    --acid-dim:#8aa31f;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  html,body{height:100%}
+  body{
+    background:
+      radial-gradient(120% 80% at 50% -10%, #15201688 0%, transparent 60%),
+      var(--bg);
+    color:var(--text);
+    font-family:'Inter',system-ui,sans-serif;
+    min-height:100dvh;
+    -webkit-font-smoothing:antialiased;
+    overflow-x:hidden;
+  }
+  .screen{
+    display:none;
+    flex-direction:column;
+    min-height:100dvh;
+    max-width:560px;
+    margin:0 auto;
+    padding:max(20px,env(safe-area-inset-top)) 18px max(24px,env(safe-area-inset-bottom));
+  }
+  .screen.active{display:flex}
+
+  .eyebrow{
+    font-family:'Oswald',sans-serif;
+    font-weight:300;
+    letter-spacing:.42em;
+    text-transform:uppercase;
+    font-size:11px;
+    color:var(--acid);
+  }
+
+  /* ---------- START ---------- */
+  #start{justify-content:center;gap:0}
+  #start h1{
+    font-family:'Oswald',sans-serif;
+    font-weight:700;
+    text-transform:uppercase;
+    font-size:clamp(56px,18vw,96px);
+    line-height:.86;
+    margin:14px 0 6px;
+  }
+  #start h1 .sub{
+    display:block;
+    font-weight:300;
+    font-size:clamp(15px,4.4vw,22px);
+    letter-spacing:.24em;
+    color:var(--muted);
+    margin-top:14px;
+  }
+  .rules{
+    color:var(--muted);
+    font-size:13.5px;
+    line-height:1.6;
+    margin:22px 0 28px;
+    border-left:2px solid var(--acid-dim);
+    padding-left:14px;
+  }
+  .modes{display:flex;flex-direction:column;gap:12px}
+  .mode-btn{
+    background:var(--panel);
+    border:1px solid var(--line);
+    color:var(--text);
+    text-align:left;
+    padding:16px 18px;
+    cursor:pointer;
+    transition:border-color .15s, background .15s;
+    font-family:'Inter',sans-serif;
+  }
+  .mode-btn:active{border-color:var(--acid);background:var(--panel-2)}
+  .mode-btn .m-title{
+    font-family:'Oswald',sans-serif;
+    font-weight:500;
+    text-transform:uppercase;
+    letter-spacing:.12em;
+    font-size:16px;
+  }
+  .mode-btn .m-desc{color:var(--muted);font-size:12.5px;margin-top:4px}
+  .mode-btn.primary{border-color:var(--acid)}
+  .mode-btn.primary .m-title{color:var(--acid)}
+  #continueBtn{display:none}
+  #continueBtn.visible{display:block}
+
+  /* ---------- BATTLE ---------- */
+  #battle{justify-content:space-between}
+  .hud{margin-bottom:10px}
+  .hud-top{
+    display:flex;
+    justify-content:space-between;
+    align-items:baseline;
+    gap:10px;
+  }
+  .round-name{
+    font-family:'Oswald',sans-serif;
+    font-weight:700;
+    text-transform:uppercase;
+    letter-spacing:.18em;
+    font-size:clamp(18px,5.4vw,24px);
+    color:var(--acid);
+  }
+  .match-no{
+    font-family:'Oswald',sans-serif;
+    font-weight:300;
+    letter-spacing:.14em;
+    text-transform:uppercase;
+    font-size:12px;
+    color:var(--muted);
+    white-space:nowrap;
+  }
+  .progress{
+    height:3px;
+    background:var(--line);
+    margin-top:12px;
+    position:relative;
+    overflow:hidden;
+  }
+  .progress i{
+    position:absolute;inset:0;
+    background:var(--acid);
+    transform-origin:left;
+    transform:scaleX(0);
+    transition:transform .3s ease;
+  }
+
+  .arena{
+    flex:1;
+    display:flex;
+    flex-direction:column;
+    justify-content:center;
+    gap:0;
+    min-height:0;
+  }
+  .card{
+    flex:1;
+    max-height:34dvh;
+    min-height:120px;
+    background:var(--panel);
+    border:1px solid var(--line);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    text-align:center;
+    padding:20px 22px;
+    cursor:pointer;
+    position:relative;
+    overflow:hidden;
+    transition:border-color .12s, background .12s, transform .12s;
+    user-select:none;-webkit-user-select:none;
+  }
+  .card .name{
+    font-family:'Oswald',sans-serif;
+    font-weight:500;
+    text-transform:uppercase;
+    letter-spacing:.06em;
+    font-size:clamp(22px,7vw,38px);
+    line-height:1.12;
+    word-break:break-word;
+  }
+  .card:active{transform:scale(.985)}
+  .card.win{
+    border-color:var(--acid);
+    background:#18220f;
+  }
+  .card.win .name{color:var(--acid)}
+  .card.lose{opacity:.25}
+  .card.enter{animation:slideIn .28s ease both}
+  .card:nth-child(3).enter{animation-delay:.05s}
+  @keyframes slideIn{
+    from{opacity:0;transform:translateY(14px)}
+    to{opacity:1;transform:none}
+  }
+
+  .vs{
+    display:flex;
+    align-items:center;
+    gap:16px;
+    padding:14px 0;
+  }
+  .vs::before,.vs::after{
+    content:"";flex:1;height:1px;background:var(--line);
+  }
+  .vs span{
+    font-family:'Oswald',sans-serif;
+    font-weight:700;
+    font-size:18px;
+    letter-spacing:.3em;
+    color:var(--acid-dim);
+  }
+
+  .battle-foot{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-top:14px;
+  }
+  .ghost-btn{
+    background:none;
+    border:none;
+    color:var(--muted);
+    font-family:'Oswald',sans-serif;
+    font-weight:300;
+    letter-spacing:.16em;
+    text-transform:uppercase;
+    font-size:12px;
+    padding:10px 0;
+    cursor:pointer;
+  }
+  .ghost-btn:active{color:var(--acid)}
+  .ghost-btn[disabled]{opacity:.3;pointer-events:none}
+
+  /* ---------- END ---------- */
+  #end{justify-content:center;text-align:center}
+  .crown{
+    font-size:44px;
+    margin-bottom:8px;
+    animation:pop .5s cubic-bezier(.2,1.6,.4,1) both;
+  }
+  @keyframes pop{from{transform:scale(0)}to{transform:scale(1)}}
+  .champ-label{
+    font-family:'Oswald',sans-serif;
+    font-weight:300;
+    letter-spacing:.42em;
+    text-transform:uppercase;
+    font-size:12px;
+    color:var(--muted);
+    margin-bottom:14px;
+  }
+  .champ-name{
+    font-family:'Oswald',sans-serif;
+    font-weight:700;
+    text-transform:uppercase;
+    font-size:clamp(36px,11vw,64px);
+    line-height:1;
+    color:var(--acid);
+    margin-bottom:26px;
+    animation:slideIn .4s .15s ease both;
+  }
+  .podium{
+    border-top:1px solid var(--line);
+    border-bottom:1px solid var(--line);
+    padding:18px 0;
+    margin-bottom:28px;
+    text-align:left;
+    display:flex;
+    flex-direction:column;
+    gap:10px;
+  }
+  .podium-row{display:flex;gap:14px;align-items:baseline;font-size:14.5px}
+  .podium-row .place{
+    font-family:'Oswald',sans-serif;
+    font-weight:300;
+    letter-spacing:.14em;
+    text-transform:uppercase;
+    font-size:11px;
+    color:var(--acid-dim);
+    min-width:110px;
+    flex-shrink:0;
+  }
+  .end-actions{display:flex;flex-direction:column;gap:12px}
+  .end-actions .mode-btn{text-align:center}
+  .toast{
+    position:fixed;
+    left:50%;bottom:28px;
+    transform:translate(-50%,80px);
+    background:var(--acid);
+    color:#0a0d0b;
+    font-family:'Oswald',sans-serif;
+    font-weight:500;
+    letter-spacing:.12em;
+    text-transform:uppercase;
+    font-size:13px;
+    padding:12px 22px;
+    transition:transform .25s ease;
+    pointer-events:none;
+    z-index:10;
+  }
+  .toast.show{transform:translate(-50%,0)}
+
+  /* ---------- BRACKET ---------- */
+  #bracket{
+    max-width:none;
+    padding:0;
+  }
+  .bracket-bar{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:12px;
+    padding:max(14px,env(safe-area-inset-top)) 16px 12px;
+    border-bottom:1px solid var(--line);
+  }
+  .bracket-bar .title{
+    font-family:'Oswald',sans-serif;
+    font-weight:700;
+    text-transform:uppercase;
+    letter-spacing:.18em;
+    font-size:15px;
+    color:var(--acid);
+  }
+  .zoom-group{display:flex;gap:8px}
+  .zoom-btn{
+    background:var(--panel);
+    border:1px solid var(--line);
+    color:var(--text);
+    width:38px;height:38px;
+    font-size:18px;
+    cursor:pointer;
+    font-family:'Oswald',sans-serif;
+  }
+  .zoom-btn:active{border-color:var(--acid);color:var(--acid)}
+  .bracket-scroll{
+    flex:1;
+    overflow:auto;
+    -webkit-overflow-scrolling:touch;
+    touch-action:pan-x pan-y;
+  }
+  .bracket-scroll svg{display:block}
+  .bracket-hint{
+    color:var(--muted);
+    font-size:11.5px;
+    text-align:center;
+    padding:8px 16px max(10px,env(safe-area-inset-bottom));
+    border-top:1px solid var(--line);
+  }
+</style>
+</head>
+<body>
+
+<!-- ================= START ================= -->
+<section class="screen active" id="start">
+  <div>
+    <div class="eyebrow">Battle royale · твоя любимая песня</div>
+    <h1>ATL<span class="sub">битва треков</span></h1>
+    <p class="rules">
+      Треки выходят парами. Жми на тот, который нравится больше, —
+      он проходит в следующий раунд. Так до тех пор, пока не останется
+      один чемпион.
+    </p>
+    <div class="modes">
+      <button class="mode-btn primary visible" id="continueBtn">
+        <div class="m-title">Продолжить битву</div>
+        <div class="m-desc" id="continueDesc"></div>
+      </button>
+      <button class="mode-btn" data-size="full">
+        <div class="m-title">Полная битва</div>
+        <div class="m-desc">Все треки · самый честный результат</div>
+      </button>
+      <button class="mode-btn" data-size="64">
+        <div class="m-title">Средняя</div>
+        <div class="m-desc">64 случайных трека · 63 матча</div>
+      </button>
+      <button class="mode-btn" data-size="32">
+        <div class="m-title">Быстрая</div>
+        <div class="m-desc">32 случайных трека · 31 матч</div>
+      </button>
+    </div>
+  </div>
+</section>
+
+<!-- ================= BATTLE ================= -->
+<section class="screen" id="battle">
+  <div class="hud">
+    <div class="hud-top">
+      <div class="round-name" id="roundName"></div>
+      <div class="match-no" id="matchNo"></div>
+    </div>
+    <div class="progress"><i id="progressBar"></i></div>
+  </div>
+
+  <div class="arena">
+    <div class="card" id="cardA"><div class="name"></div></div>
+    <div class="vs"><span>VS</span></div>
+    <div class="card" id="cardB"><div class="name"></div></div>
+  </div>
+
+  <div class="battle-foot">
+    <button class="ghost-btn" id="undoBtn" disabled>← Отменить</button>
+    <button class="ghost-btn" id="quitBtn">В меню</button>
+  </div>
+</section>
+
+<!-- ================= END ================= -->
+<section class="screen" id="end">
+  <div>
+    <div class="crown">🏆</div>
+    <div class="champ-label">Твоя любимая песня ATL</div>
+    <div class="champ-name" id="champName"></div>
+    <div class="podium" id="podium"></div>
+    <div class="end-actions">
+      <button class="mode-btn primary" id="bracketBtn">
+        <div class="m-title">Турнирная сетка</div>
+      </button>
+      <button class="mode-btn" id="shareBtn">
+        <div class="m-title">Поделиться результатом</div>
+      </button>
+      <button class="mode-btn" id="restartBtn">
+        <div class="m-title">Новая битва</div>
+      </button>
+    </div>
+  </div>
+</section>
+
+<!-- ================= BRACKET ================= -->
+<section class="screen" id="bracket">
+  <div class="bracket-bar">
+    <button class="ghost-btn" id="bracketBack">← Назад</button>
+    <div class="title">Турнирная сетка</div>
+    <div class="zoom-group">
+      <button class="zoom-btn" id="zoomOut">−</button>
+      <button class="zoom-btn" id="zoomIn">+</button>
+    </div>
+  </div>
+  <div class="bracket-scroll" id="bracketScroll"></div>
+  <div class="bracket-hint">Двигай сетку пальцем · масштаб кнопками + / −</div>
+</section>
+
+<div class="toast" id="toast">Скопировано</div>
+
+<script>
+const TRACKS = [
+  "25 недель","66.6 FM","1000","Адренохром","Ангелы","Ареола","Архитектор","Астронавт",
+  "Бензопила","Бисер","Behemoth","Божественный флоу","Браслеты","В высокой траве","В унисон",
+  "Вернуться домой","Весна как слышите?","Весь в отца","Водяной","Волчья ягода","Вороний грай",
+  "Всего лишь мертвецы","Гетто гопник","Гори ясно","Гроздья ярости","Грустный DJ","C4","Демоны",
+  "Детонатор","Диссонанс","Дисторшн","Доспехи","Душегуб","Жабры","Забил","Зажигалки вверх",
+  "Звёздный лорд","Идущий к реке","Искра","Каменоломня","Карма и Кома","Кислород","Корень Мандрагоры",
+  "Кривой эфир","Крокодил","Кто ты есть","Ласточки","Либерия","Майк","Макабр","Манекен","Марабу",
+  "Мерзлота","Метаморфоз","Мисс Ю","Монстр","Мэджик пипл","На щите","Нас нет","Не беда","Неймдроппинг",
+  "Никакой эмпатии","Нирвана","Ной","No matter","Обратно","Око","Паранойя","PDL","Петля","Пилюли",
+  "Планета Железяка","Плохая","Повешенный на цепях","Под небом салатовым","Подснежник","Пока молодой",
+  "Последний человек на земле","Потреблять","Прирожденные убийцы","Птицы","Пчёлки","Пьяный мастер",
+  "Pussypower","Разрушитель","RESET","Родимый грунт","Romper Stomper","Самолёт","Священный рейв",
+  "Серпантин","Солнышко","Спиннинг","Сплин","Стоунхендж","Стробоскоп","Summerjam","Танцуйте","Тоннель",
+  "Туман","Тяжесть","Удобрением","УГ","Урожай","Фильтр","Фристайл","Фудзи","Hasta la vista","Helios",
+  "Хелта Скелта","Череп х Кости","Чёрным снегом","Шаман","Юность-89","Яма","Ящик"
+];
+
+const SAVE_KEY = "atl-battle-v2";
+let state = null;   // текущая игра
+let prev = null;    // снимок для отмены (один шаг)
+let lock = false;   // блокировка тапов на время анимации
+
+/* ---------- утилиты ---------- */
+function shuffle(a){
+  for(let i = a.length - 1; i > 0; i--){
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+function largestPow2(n){ let p = 1; while(p * 2 <= n) p *= 2; return p; }
+function plural(n, one, few, many){
+  const m10 = n % 10, m100 = n % 100;
+  if(m10 === 1 && m100 !== 11) return one;
+  if(m10 >= 2 && m10 <= 4 && (m100 < 12 || m100 > 14)) return few;
+  return many;
+}
+
+/* ---------- игра ---------- */
+function newGame(size){
+  let pool = shuffle([...TRACKS]);
+  if(size !== "full") pool = pool.slice(0, +size);
+
+  const n = pool.length;
+  const target = largestPow2(n);
+  let byes = [], round = pool;
+  if(n !== target){
+    // часть треков пропускает отборочный раунд, чтобы дальше сетка была ровной
+    const byeCount = target * 2 - n;
+    byes = pool.slice(0, byeCount);
+    round = pool.slice(byeCount);
+  }
+
+  state = {
+    total: n,            // всего участников
+    played: 0,           // сыграно матчей всего
+    round,               // участники текущего раунда (играют попарно)
+    byes,                // проходят без игры (только в 1-м раунде)
+    byesR1: [...byes],   // для отрисовки сетки
+    winners: [],
+    matchIndex: 0,
+    finalist: null,
+    semifinalists: [],
+    history: [[]]        // по раунду: [{a, b, w}]
+  };
+  prev = null;
+  save();
+  showScreen("battle");
+  renderMatch(true);
+}
+
+function currentPair(){
+  const i = state.matchIndex * 2;
+  return [state.round[i], state.round[i + 1]];
+}
+
+function roundLabelFor(total, hasByes){
+  if(total === 2)  return "Финал";
+  if(total === 4)  return "Полуфинал";
+  if(total === 8)  return "Четвертьфинал";
+  if(hasByes) return "Отборочный раунд";
+  return "1/" + (total / 2) + " финала";
+}
+function roundLabel(){
+  return roundLabelFor(state.round.length + state.byes.length, state.byes.length > 0);
+}
+
+function pick(side){
+  if(lock) return;
+  lock = true;
+  prev = JSON.parse(JSON.stringify(state));
+
+  const [a, b] = currentPair();
+  const winner = side === 0 ? a : b;
+  const loser  = side === 0 ? b : a;
+  const participants = state.round.length + state.byes.length;
+  if(participants === 2) state.finalist = loser;
+  if(participants === 4) state.semifinalists.push(loser);
+
+  state.history[state.history.length - 1].push({ a, b, w: winner });
+  state.winners.push(winner);
+  state.played++;
+  state.matchIndex++;
+
+  // подсветка выбора
+  const cards = [cardA, cardB];
+  cards[side].classList.add("win");
+  cards[1 - side].classList.add("lose");
+  updateProgress();
+
+  setTimeout(() => {
+    if(state.matchIndex * 2 >= state.round.length){
+      // раунд завершён; победители идут дальше в том же порядке —
+      // сетка остаётся настоящим турнирным деревом
+      state.round = [...state.winners, ...state.byes];
+      state.byes = [];
+      state.winners = [];
+      state.matchIndex = 0;
+      if(state.round.length === 1){
+        finishGame(state.round[0]);
+        lock = false;
+        return;
+      }
+      state.history.push([]);
+    }
+    save();
+    renderMatch(true);
+    lock = false;
+  }, 420);
+}
+
+function undo(){
+  if(!prev || lock) return;
+  state = prev;
+  prev = null;
+  save();
+  renderMatch(false);
+}
+
+function finishGame(champion){
+  localStorage.removeItem(SAVE_KEY);
+  state.champion = champion;
+  champName.textContent = champion;
+
+  const rows = [];
+  if(state.finalist)
+    rows.push(["Финалист", state.finalist]);
+  if(state.semifinalists.length)
+    rows.push(["Полуфинал", state.semifinalists.join(" · ")]);
+  rows.push(["Участников",
+    state.total + " " + plural(state.total, "трек", "трека", "треков") + " · " +
+    state.played + " " + plural(state.played, "матч", "матча", "матчей")]);
+  podium.innerHTML = rows.map(([p, v]) =>
+    `<div class="podium-row"><span class="place">${p}</span><span>${v}</span></div>`
+  ).join("");
+
+  showScreen("end");
+}
+
+/* ---------- турнирная сетка ---------- */
+let bracketScale = 1, bracketW = 0;
+
+function esc(s){
+  return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+}
+function trunc(s, n){ return s.length > n ? s.slice(0, n - 1) + "…" : s; }
+
+function buildBracket(){
+  const COLW = 168, CELLW = 124, ROWH = 16, PAD = 24, TOP = 46;
+  const acid = "#bfe22a", line = "#37463c", text = "#c9cfc6", mut = "#7d8a7f";
+
+  // колонки: раунд 1 (матчи + байи в порядке слотов раунда 2), затем остальные раунды, затем чемпион
+  const cols = [];
+  const col0 = state.history[0].map(m => ({ type:"match", m }));
+  state.byesR1.forEach(name => col0.push({ type:"bye", name }));
+  cols.push(col0);
+  for(let r = 1; r < state.history.length; r++)
+    cols.push(state.history[r].map(m => ({ type:"match", m })));
+  cols.push([{ type:"champ", name: state.champion }]);
+
+  const H = TOP + col0.length * 46 + PAD;
+  const W = PAD * 2 + cols.length * COLW;
+
+  // координаты: каждая колонка равномерно по высоте
+  cols.forEach((col, c) => col.forEach((cell, i) => {
+    cell.x = PAD + c * COLW;
+    cell.y = TOP + (i + 0.5) * ((H - TOP - PAD) / col.length);
+  }));
+
+  let svgLines = "", svgBoxes = "", svgHead = "";
+
+  // заголовки раундов
+  cols.forEach((col, c) => {
+    let label;
+    if(c === cols.length - 1) label = "Чемпион";
+    else{
+      const total = state.history[c].length * 2 + (c === 0 ? state.byesR1.length : 0);
+      label = roundLabelFor(total, c === 0 && state.byesR1.length > 0);
+    }
+    svgHead += `<text x="${cell0x(col, c)}" y="24" fill="${mut}" font-size="11"
+      font-family="Oswald,sans-serif" letter-spacing="2" text-transform="uppercase"
+      style="text-transform:uppercase">${esc(label.toUpperCase())}</text>`;
+  });
+  function cell0x(col, c){ return PAD + c * COLW; }
+
+  // линии: участник слота s матча m колонки c пришёл из ячейки 2m+s колонки c-1
+  for(let c = 1; c < cols.length; c++){
+    cols[c].forEach((cell, m) => {
+      const slots = cell.type === "champ" ? 1 : 2;
+      for(let s = 0; s < slots; s++){
+        const src = cols[c - 1][cell.type === "champ" ? 0 : 2 * m + s];
+        if(!src) continue;
+        const srcName = src.type === "match" ? src.m.w : src.name;
+        const x1 = src.x + CELLW, y1 = src.y;
+        const x2 = cell.x;
+        const y2 = cell.type === "champ" ? cell.y : cell.y + (s === 0 ? -ROWH / 2 : ROWH / 2);
+        const champPath = srcName === state.champion;
+        svgLines += `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}"
+          stroke="${champPath ? acid : line}" stroke-width="${champPath ? 2 : 1}"/>`;
+      }
+    });
+  }
+
+  // ячейки
+  cols.forEach(col => col.forEach(cell => {
+    if(cell.type === "champ"){
+      svgBoxes += `<rect x="${cell.x}" y="${cell.y - 19}" width="${CELLW + 14}" height="38"
+          fill="#18220f" stroke="${acid}" stroke-width="1.5"/>
+        <text x="${cell.x + (CELLW + 14) / 2}" y="${cell.y + 4}" fill="${acid}" font-size="12"
+          font-weight="700" text-anchor="middle" font-family="Oswald,sans-serif"
+          letter-spacing="1">${esc(trunc(cell.name.toUpperCase(), 18))} 🏆</text>`;
+      return;
+    }
+    if(cell.type === "bye"){
+      const isChamp = cell.name === state.champion;
+      svgBoxes += `<rect x="${cell.x}" y="${cell.y - ROWH / 2 - 2}" width="${CELLW}" height="${ROWH + 4}"
+          fill="#121814" stroke="${isChamp ? acid : line}"/>
+        <text x="${cell.x + 6}" y="${cell.y + 4}" fill="${isChamp ? acid : text}"
+          font-size="10.5">${esc(trunc(cell.name, 18))}</text>
+        <text x="${cell.x + CELLW - 5}" y="${cell.y + 4}" fill="${mut}" font-size="8"
+          text-anchor="end">без игры</text>`;
+      return;
+    }
+    const { a, b, w } = cell.m;
+    const top = cell.y - ROWH, h = ROWH * 2 + 4;
+    svgBoxes += `<rect x="${cell.x}" y="${top - 2}" width="${CELLW}" height="${h}"
+        fill="#121814" stroke="${w === state.champion ? acid : line}"/>
+      <line x1="${cell.x}" y1="${cell.y}" x2="${cell.x + CELLW}" y2="${cell.y}" stroke="${line}"/>`;
+    [[a, cell.y - ROWH / 2], [b, cell.y + ROWH / 2]].forEach(([name, y]) => {
+      const winRow = name === w;
+      svgBoxes += `<text x="${cell.x + 6}" y="${y + 3.5}"
+        fill="${winRow ? (w === state.champion ? acid : "#e9ece6") : mut}"
+        font-size="10.5" ${winRow ? 'font-weight="600"' : ""}
+        ${!winRow ? 'opacity="0.75"' : ""}>${esc(trunc(name, 18))}${winRow ? " ✓" : ""}</text>`;
+    });
+  }));
+
+  bracketW = W;
+  return `<svg viewBox="0 0 ${W} ${H}" width="${W}" xmlns="http://www.w3.org/2000/svg"
+    style="background:transparent;font-family:Inter,sans-serif">
+    ${svgHead}${svgLines}${svgBoxes}</svg>`;
+}
+
+function openBracket(){
+  bracketScale = 1;
+  document.getElementById("bracketScroll").innerHTML = buildBracket();
+  applyZoom();
+  showScreen("bracket");
+}
+function applyZoom(){
+  const svg = document.querySelector("#bracketScroll svg");
+  if(svg) svg.setAttribute("width", Math.round(bracketW * bracketScale));
+}
+
+/* ---------- рендер ---------- */
+const cardA = document.getElementById("cardA");
+const cardB = document.getElementById("cardB");
+const champName = document.getElementById("champName");
+const podium = document.getElementById("podium");
+
+function renderMatch(animate){
+  const [a, b] = currentPair();
+  for(const [card, name] of [[cardA, a], [cardB, b]]){
+    card.classList.remove("win", "lose", "enter");
+    card.querySelector(".name").textContent = name;
+    if(animate){ void card.offsetWidth; card.classList.add("enter"); }
+  }
+  document.getElementById("roundName").textContent = roundLabel();
+  document.getElementById("matchNo").textContent =
+    "Матч " + (state.matchIndex + 1) + " из " + (state.round.length / 2);
+  document.getElementById("undoBtn").disabled = !prev;
+  updateProgress();
+}
+
+function updateProgress(){
+  document.getElementById("progressBar").style.transform =
+    "scaleX(" + (state.played / (state.total - 1)) + ")";
+}
+
+function showScreen(id){
+  document.querySelectorAll(".screen").forEach(s => s.classList.remove("active"));
+  document.getElementById(id).classList.add("active");
+}
+
+/* ---------- сохранение ---------- */
+function save(){
+  try{ localStorage.setItem(SAVE_KEY, JSON.stringify(state)); }catch(e){}
+}
+function loadSave(){
+  try{
+    const s = JSON.parse(localStorage.getItem(SAVE_KEY));
+    return (s && s.round && s.round.length >= 2 && s.history) ? s : null;
+  }catch(e){ return null; }
+}
+
+/* ---------- события ---------- */
+cardA.addEventListener("click", () => pick(0));
+cardB.addEventListener("click", () => pick(1));
+document.getElementById("undoBtn").addEventListener("click", undo);
+
+document.getElementById("quitBtn").addEventListener("click", () => {
+  save();
+  refreshContinue();
+  showScreen("start");
+});
+
+document.querySelectorAll(".mode-btn[data-size]").forEach(btn => {
+  btn.addEventListener("click", () => newGame(btn.dataset.size));
+});
+
+document.getElementById("continueBtn").addEventListener("click", () => {
+  const s = loadSave();
+  if(!s) return;
+  state = s;
+  prev = null;
+  showScreen("battle");
+  renderMatch(true);
+});
+
+document.getElementById("restartBtn").addEventListener("click", () => {
+  refreshContinue();
+  showScreen("start");
+});
+
+document.getElementById("bracketBtn").addEventListener("click", openBracket);
+document.getElementById("bracketBack").addEventListener("click", () => showScreen("end"));
+document.getElementById("zoomIn").addEventListener("click", () => {
+  bracketScale = Math.min(2.4, bracketScale * 1.25); applyZoom();
+});
+document.getElementById("zoomOut").addEventListener("click", () => {
+  bracketScale = Math.max(0.35, bracketScale / 1.25); applyZoom();
+});
+
+document.getElementById("shareBtn").addEventListener("click", async () => {
+  const text = "Моя любимая песня ATL — «" + state.champion + "» 🏆"
+    + (state.finalist ? "\nВ финале победила «" + state.finalist + "»" : "")
+    + "\nВыбрано из " + state.total + " " + plural(state.total, "трека", "треков", "треков");
+  if(navigator.share){
+    try{ await navigator.share({ text }); return; }catch(e){}
+  }
+  try{
+    await navigator.clipboard.writeText(text);
+    const t = document.getElementById("toast");
+    t.classList.add("show");
+    setTimeout(() => t.classList.remove("show"), 1800);
+  }catch(e){}
+});
+
+function refreshContinue(){
+  const s = loadSave();
+  const btn = document.getElementById("continueBtn");
+  if(s && !s.champion){
+    btn.classList.add("visible");
+    document.getElementById("continueDesc").textContent =
+      "Сыграно " + s.played + " из " + (s.total - 1) + " матчей";
+  }else{
+    btn.classList.remove("visible");
+  }
+}
+// первая полная игра — указываем реальное число треков
+document.querySelector('[data-size="full"] .m-desc').textContent =
+  TRACKS.length + " треков · " + (TRACKS.length - 1) + " матчей";
+
+refreshContinue();
+</script>
+</body>
+</html>
